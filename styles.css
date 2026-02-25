@@ -146,6 +146,17 @@ body {
   align-items: center;
   padding: var(--space-sm) 0;
   margin-bottom: var(--space-md);
+  transition: transform 250ms ease, opacity 250ms ease;
+}
+
+.header.header--hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  margin-bottom: 0;
+  padding: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .header-left {

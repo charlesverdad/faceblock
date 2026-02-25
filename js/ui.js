@@ -108,6 +108,7 @@ export function setupUI(cbs) {
   setupCanvasClick();
   setupKeyboardShortcuts();
   setupThumbnailStrip();
+  setupHeaderAutoHide();
 }
 
 // ---- File Input ----
@@ -740,6 +741,42 @@ export function renderThumbnailStrip(photos, activePhotoId) {
       inline: "nearest",
     });
   }
+}
+
+// ---- Header Auto-hide on Scroll ----
+
+function setupHeaderAutoHide() {
+  const header = document.querySelector(".header");
+  if (!header) return;
+
+  let lastScrollY = window.scrollY;
+  let ticking = false;
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const currentY = window.scrollY;
+        const isEditing = els.app.dataset.state === "editing";
+
+        if (!isEditing) {
+          header.classList.remove("header--hidden");
+        } else if (currentY > lastScrollY && currentY > 60) {
+          // Scrolling down past threshold — hide
+          header.classList.add("header--hidden");
+        } else {
+          // Scrolling up — show
+          header.classList.remove("header--hidden");
+        }
+
+        lastScrollY = currentY;
+        ticking = false;
+      });
+    },
+    { passive: true },
+  );
 }
 
 // ---- State Management ----

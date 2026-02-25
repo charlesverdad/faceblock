@@ -115,6 +115,13 @@ function init() {
   showState("empty");
   setActiveMode(state.effectId);
   setIntensity(state.intensity);
+
+  // Warn before unload if unsaved work exists
+  window.addEventListener("beforeunload", (e) => {
+    if (state.photos.length > 0 && !state.hasDownloaded) {
+      e.preventDefault();
+    }
+  });
 }
 
 // ---- File Upload ----
