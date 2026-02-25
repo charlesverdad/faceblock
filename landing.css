@@ -29,6 +29,7 @@ html {
   font-size: 16px;
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  overflow-x: clip;
 }
 
 body {
@@ -37,7 +38,7 @@ body {
   color: var(--text);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* ---- Nav ---- */
@@ -51,6 +52,7 @@ body {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
+  overflow: hidden;
 }
 
 .nav-inner {
@@ -89,7 +91,6 @@ body {
   border-radius: 8px;
   transition: all 150ms ease;
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
 .nav-cta:hover {
@@ -266,7 +267,7 @@ body {
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
   gap: 20px;
 }
 
@@ -434,6 +435,7 @@ body {
   padding: 100px 24px;
   text-align: center;
   position: relative;
+  overflow: hidden;
 }
 
 .final-cta::before {
