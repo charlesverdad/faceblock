@@ -973,7 +973,13 @@ body {
 
   .editor-layout {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: flex-start;
+  }
+
+  .editor-layout > .thumbnail-strip {
+    width: 100%;
+    flex-shrink: 0;
   }
 
   .preview-area {

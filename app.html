@@ -77,6 +77,9 @@
     <section id="editor-panel" class="editor-panel">
       <div class="editor-layout">
 
+        <!-- Thumbnail Strip (above preview, stable position) -->
+        <div id="thumbnail-strip" class="thumbnail-strip" role="tablist" aria-label="Loaded photos"></div>
+
         <!-- Preview Area -->
         <div class="preview-area">
           <div id="preview-container" class="preview-container">
@@ -87,8 +90,6 @@
               <p id="loading-text">Processing...</p>
             </div>
           </div>
-          <!-- Thumbnail Strip (visible with multiple photos) -->
-          <div id="thumbnail-strip" class="thumbnail-strip" role="tablist" aria-label="Loaded photos"></div>
           <p id="face-count" class="face-count" aria-live="polite"></p>
         </div>
 
