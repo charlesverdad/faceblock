@@ -493,11 +493,6 @@ function handleFaceRemoved() {
   const idx = photo.faces.indexOf(face);
   if (idx >= 0) {
     pushUndo(photo);
-    // If removing a detected face, update the detected count
-    if (face && !face.manual) {
-      photo.detectedFaceCount = Math.max(0, photo.detectedFaceCount - 1);
-      setFaceCount(photo.detectedFaceCount);
-    }
     photo.faces.splice(idx, 1);
     photo.selectedFaceId = null;
     renderOverlay(photo.faces, photo.selectedFaceId);
