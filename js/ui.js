@@ -340,22 +340,27 @@ function setupCanvasClick() {
       if (selected) {
         const b = selected.box;
 
-        // Check delete button (top-right)
+        // Check delete button (centered on top-right corner)
         const ds = getDeleteBtnSize();
-        const dx = b.x + b.width - ds / 2;
-        const dy = b.y - ds / 2;
-        const dCx = dx + ds / 2;
-        const dCy = dy + ds / 2;
+        const dCx = b.x + b.width;
+        const dCy = b.y;
         const dDist = Math.sqrt((cx - dCx) ** 2 + (cy - dCy) ** 2);
-        if (dDist <= ds / 2 + 4) {
+        // Generous hitbox for touch: visual radius + extra padding
+        const hitRadius = ds / 2 + 8 / (getDisplayScale() || 1);
+        if (dDist <= hitRadius) {
           return { type: "delete", face: selected };
         }
 
-        // Check resize handle (bottom-right)
+        // Check resize handle (centered on bottom-left corner)
         const hs = getHandleSize();
-        const hx = b.x + b.width - hs;
-        const hy = b.y + b.height - hs;
-        if (cx >= hx && cx <= hx + hs && cy >= hy && cy <= hy + hs) {
+        const hCx = b.x;
+        const hCy = b.y + b.height;
+        if (
+          cx >= hCx - hs / 2 &&
+          cx <= hCx + hs / 2 &&
+          cy >= hCy - hs / 2 &&
+          cy <= hCy + hs / 2
+        ) {
           return { type: "resize", face: selected };
         }
       }
@@ -379,11 +384,15 @@ function setupCanvasClick() {
   function getResizeBox() {
     const dx = drag.currentX - drag.startX;
     const dy = drag.currentY - drag.startY;
+    // Bottom-left handle: anchor is top-right corner
+    const newWidth = Math.max(20, drag.origBox.width - dx);
+    const newHeight = Math.max(20, drag.origBox.height + dy);
+    const newX = drag.origBox.x + drag.origBox.width - newWidth;
     return {
-      x: drag.origBox.x,
+      x: newX,
       y: drag.origBox.y,
-      width: Math.max(20, drag.origBox.width + dx),
-      height: Math.max(20, drag.origBox.height + dy),
+      width: newWidth,
+      height: newHeight,
     };
   }
 
@@ -420,17 +429,17 @@ function setupCanvasClick() {
     }
   }
 
-  let savedFaceCountText = "";
-
   function setDragHint(text) {
-    savedFaceCountText = els.faceCount.textContent;
-    els.faceCount.textContent = text;
-    els.faceCount.classList.add("drag-hint");
+    showSelectionHint(text);
   }
 
   function clearDragHint() {
-    els.faceCount.textContent = savedFaceCountText;
-    els.faceCount.classList.remove("drag-hint");
+    // Restore selection hint if still selected, otherwise clear
+    if (currentSelectedId) {
+      showSelectionHint("Drag to move");
+    } else {
+      clearSelectionHint();
+    }
   }
 
   function handlePointerDown(x, y) {
@@ -522,7 +531,7 @@ function setupCanvasClick() {
     if (hit.type === "delete") {
       canvas.style.cursor = "pointer";
     } else if (hit.type === "resize") {
-      canvas.style.cursor = "nwse-resize";
+      canvas.style.cursor = "nesw-resize";
     } else if (hit.type === "face" && hit.face.id === currentSelectedId) {
       canvas.style.cursor = "move";
     } else if (hit.type === "face") {
@@ -750,7 +759,10 @@ function setupHeaderAutoHide() {
   if (!header) return;
 
   let lastScrollY = window.scrollY;
+  let lastDirection = 0; // 1 = down, -1 = up
+  let directionChangeY = window.scrollY;
   let ticking = false;
+  const DEAD_ZONE = 30; // px of scroll in new direction before toggling
 
   window.addEventListener(
     "scroll",
@@ -760,14 +772,21 @@ function setupHeaderAutoHide() {
       requestAnimationFrame(() => {
         const currentY = window.scrollY;
         const isEditing = els.app.dataset.state === "editing";
+        const direction = currentY > lastScrollY ? 1 : -1;
+
+        // Track direction changes
+        if (direction !== lastDirection) {
+          directionChangeY = lastScrollY;
+          lastDirection = direction;
+        }
+
+        const delta = Math.abs(currentY - directionChangeY);
 
         if (!isEditing) {
           header.classList.remove("header--hidden");
-        } else if (currentY > lastScrollY && currentY > 60) {
-          // Scrolling down past threshold — hide
+        } else if (direction === 1 && currentY > 60 && delta > DEAD_ZONE) {
           header.classList.add("header--hidden");
-        } else {
-          // Scrolling up — show
+        } else if (direction === -1 && delta > DEAD_ZONE) {
           header.classList.remove("header--hidden");
         }
 
@@ -800,12 +819,26 @@ export function hideStatus() {
   els.statusBar.classList.remove("visible");
 }
 
+let baseFaceCountText = "";
+
 export function setFaceCount(detectedCount) {
   if (detectedCount > 0) {
-    els.faceCount.textContent = `${detectedCount} face${detectedCount > 1 ? "s" : ""} detected \u00B7 Tap to add more`;
+    baseFaceCountText = `${detectedCount} face${detectedCount > 1 ? "s" : ""} detected \u00B7 Tap to add more`;
   } else {
-    els.faceCount.textContent = "No faces detected \u00B7 Tap to add areas";
+    baseFaceCountText = "No faces detected \u00B7 Tap to add areas";
   }
+  els.faceCount.textContent = baseFaceCountText;
+  els.faceCount.classList.remove("drag-hint");
+}
+
+function showSelectionHint(text) {
+  els.faceCount.textContent = text;
+  els.faceCount.classList.add("drag-hint");
+}
+
+function clearSelectionHint() {
+  els.faceCount.textContent = baseFaceCountText;
+  els.faceCount.classList.remove("drag-hint");
 }
 
 /**
@@ -852,15 +885,10 @@ export function renderOverlay(faces, selectedFaceId) {
   for (const face of faces) {
     const { x, y, width, height } = face.box;
     const isSelected = face.id === selectedFaceId;
-    const isManual = face.manual;
 
-    ctx.strokeStyle = isSelected
-      ? "#7C5CFC"
-      : isManual
-        ? "#f4a261"
-        : "rgba(124,92,252,0.6)";
+    ctx.strokeStyle = isSelected ? "#7C5CFC" : "rgba(124,92,252,0.6)";
     ctx.lineWidth = Math.max(2, Math.min(width, height) * 0.02);
-    ctx.setLineDash(isManual ? [8, 4] : []);
+    ctx.setLineDash([]);
 
     // Rounded rectangle
     const r = Math.min(width, height) * 0.1;
@@ -868,48 +896,28 @@ export function renderOverlay(faces, selectedFaceId) {
     ctx.roundRect(x, y, width, height, r);
     ctx.stroke();
 
-    // Light fill on hover/selected
+    // Light fill on selected
     if (isSelected) {
       ctx.fillStyle = "rgba(124,92,252,0.1)";
       ctx.fill();
     }
-
-    // Label
-    ctx.setLineDash([]);
-    const label = face.manual ? "Manual" : `Face ${faces.indexOf(face) + 1}`;
-    const fontSize = Math.max(12, Math.min(width * 0.12, 20));
-    ctx.font = `600 ${fontSize}px system-ui, sans-serif`;
-    const textWidth = ctx.measureText(label).width;
-    const pad = 4;
-
-    ctx.fillStyle = isSelected ? "#7C5CFC" : "rgba(124,92,252,0.8)";
-    ctx.fillRect(
-      x,
-      y - fontSize - pad * 2,
-      textWidth + pad * 2,
-      fontSize + pad * 2,
-    );
-
-    ctx.fillStyle = "#fff";
-    ctx.textBaseline = "top";
-    ctx.fillText(label, x + pad, y - fontSize - pad);
 
     // Controls on selected face
     if (isSelected) {
       const displayScale =
         overlay.getBoundingClientRect().width / overlay.width || 1;
 
-      // Resize handle (bottom-right corner) — constant screen size
+      // Resize handle (centered on bottom-left corner)
       const hs = 24 / displayScale;
-      const hx = x + width - hs;
-      const hy = y + height - hs;
+      const hx = x - hs / 2;
+      const hy = y + height - hs / 2;
 
       ctx.fillStyle = "#7C5CFC";
       ctx.beginPath();
       ctx.roundRect(hx, hy, hs, hs, hs * 0.15);
       ctx.fill();
 
-      // Diagonal two-headed arrow (↗↙) inside resize handle
+      // Diagonal two-headed arrow inside resize handle
       ctx.strokeStyle = "#fff";
       ctx.lineWidth = Math.max(1.5, hs * 0.08);
       ctx.lineCap = "round";
@@ -918,19 +926,16 @@ export function renderOverlay(faces, selectedFaceId) {
       const ay1 = hy + hs * 0.75;
       const ax2 = hx + hs * 0.75;
       const ay2 = hy + hs * 0.25;
-      // Main diagonal line
       ctx.beginPath();
       ctx.moveTo(ax1, ay1);
       ctx.lineTo(ax2, ay2);
       ctx.stroke();
-      // Top-right arrowhead
       const arrowLen = hs * 0.2;
       ctx.beginPath();
       ctx.moveTo(ax2 - arrowLen, ay2);
       ctx.lineTo(ax2, ay2);
       ctx.lineTo(ax2, ay2 + arrowLen);
       ctx.stroke();
-      // Bottom-left arrowhead
       ctx.beginPath();
       ctx.moveTo(ax1 + arrowLen, ay1);
       ctx.lineTo(ax1, ay1);
@@ -938,10 +943,10 @@ export function renderOverlay(faces, selectedFaceId) {
       ctx.stroke();
       ctx.lineCap = "butt";
 
-      // Delete button (top-right corner) — constant screen size
+      // Delete button (centered on top-right corner)
       const ds = 22 / displayScale;
-      const dcx = x + width - ds / 2;
-      const dcy = y - ds / 2;
+      const dcx = x + width;
+      const dcy = y;
 
       ctx.fillStyle = "rgba(230, 57, 70, 0.9)";
       ctx.beginPath();
@@ -961,6 +966,13 @@ export function renderOverlay(faces, selectedFaceId) {
       ctx.stroke();
       ctx.lineCap = "butt";
     }
+  }
+
+  // Show selection hint (only when not mid-drag)
+  if (selectedFaceId && !drag.active) {
+    showSelectionHint("Drag to move");
+  } else if (!selectedFaceId && !drag.active) {
+    clearSelectionHint();
   }
 }
 
