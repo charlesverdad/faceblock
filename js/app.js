@@ -97,6 +97,7 @@ function init() {
     onSensitivityChange: handleSensitivityChange,
     onDownload: handleDownload,
     onDownloadAll: handleDownloadAll,
+    onShare: handleShare,
     onCanvasClick: handleCanvasClick,
     onFaceDrawn: handleFaceDrawn,
     onFaceMoved: handleFaceMoved,
@@ -584,7 +585,7 @@ async function handleDownload() {
     return;
   }
 
-  showStatus("Preparing download...", "info");
+  showStatus("Preparing image...", "info");
   try {
     const processed = processImage(
       photo.fullCanvas,
@@ -604,7 +605,42 @@ async function handleDownload() {
     showStatus(`Saved as ${filename}`, "success");
   } catch (err) {
     console.error("Export error:", err);
-    showStatus("Failed to export image. Please try again.", "error");
+    showStatus("Failed to save image. Please try again.", "error");
+  }
+}
+
+async function handleShare() {
+  const photo = getActivePhoto();
+  if (!photo?.fullCanvas || photo.faces.length === 0) {
+    showStatus("No faces to process", "warning");
+    return;
+  }
+
+  try {
+    const processed = processImage(
+      photo.fullCanvas,
+      photo.faces,
+      state.effectId,
+      state.intensity,
+      state.options,
+    );
+
+    const mimeType = state.format === "jpeg" ? "image/jpeg" : "image/png";
+    const ext = state.format === "jpeg" ? ".jpg" : ".png";
+    const baseName = photo.originalFilename
+      ? photo.originalFilename.replace(/\.[^.]+$/, "")
+      : "photo";
+    const filename = `faceblock_${baseName}${ext}`;
+
+    const blob = await exportAsBlob(processed, mimeType, state.quality);
+    const file = new File([blob], filename, { type: mimeType });
+
+    await navigator.share({ files: [file] });
+    state.hasDownloaded = true;
+  } catch (err) {
+    if (err.name === "AbortError") return; // User cancelled share sheet
+    console.error("Share error:", err);
+    showStatus("Share failed. Try saving instead.", "error");
   }
 }
 
@@ -666,7 +702,7 @@ async function handleDownloadAll() {
     const zipBlob = await zip.generateAsync({ type: "blob" });
     downloadBlob(zipBlob, "faceblock_photos.zip");
     state.hasDownloaded = true;
-    showStatus(`Downloaded ${total} photos`, "success");
+    showStatus(`Saved ${total} photos`, "success");
   } catch (err) {
     console.error("ZIP error:", err);
     showStatus("Failed to create ZIP file", "error");
@@ -678,7 +714,7 @@ async function handleDownloadAll() {
 function handleNewPhoto() {
   if (!state.hasDownloaded && state.photos.length > 0) {
     const confirmed = confirm(
-      "You haven't downloaded your photos yet. Start over anyway?",
+      "You haven't saved your photos yet. Start over anyway?",
     );
     if (!confirmed) return;
   }

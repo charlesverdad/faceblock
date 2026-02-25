@@ -13,6 +13,7 @@ let callbacks = {
   onSensitivityChange: null,
   onDownload: null,
   onDownloadAll: null,
+  onShare: null,
   onCanvasClick: null,
   onFaceDrawn: null,
   onFaceMoved: null,
@@ -84,6 +85,7 @@ export function setupUI(cbs) {
     qualityValue: document.getElementById("quality-value"),
 
     downloadBtn: document.getElementById("download-btn"),
+    shareBtn: document.getElementById("share-btn"),
     downloadAllBtn: document.getElementById("download-all-btn"),
     newPhotoBtn: document.getElementById("new-photo-btn"),
     undoBtn: document.getElementById("undo-btn"),
@@ -283,6 +285,21 @@ function setupButtons() {
   els.newPhotoBtn.addEventListener("click", () => callbacks.onNewPhoto?.());
   els.undoBtn?.addEventListener("click", () => callbacks.onUndo?.());
   els.redoBtn?.addEventListener("click", () => callbacks.onRedo?.());
+
+  // Show share button if Web Share API supports files
+  if (els.shareBtn && navigator.canShare) {
+    try {
+      const testFile = new File([new Blob(["test"])], "test.png", {
+        type: "image/png",
+      });
+      if (navigator.canShare({ files: [testFile] })) {
+        els.shareBtn.hidden = false;
+        els.shareBtn.addEventListener("click", () => callbacks.onShare?.());
+      }
+    } catch {
+      // canShare not supported for files
+    }
+  }
 }
 
 // ---- Canvas Interaction (tap to select, drag to move/draw/resize) ----

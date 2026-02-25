@@ -444,7 +444,7 @@ body {
   color: var(--accent);
 }
 
-/* ---- Batch Download ---- */
+/* ---- Batch Save ---- */
 .btn-download-all {
   background: var(--bg-surface);
   color: var(--accent);
@@ -452,6 +452,17 @@ body {
 }
 
 .btn-download-all:hover {
+  background: rgba(124, 92, 252, 0.1);
+}
+
+/* ---- Share Button ---- */
+.btn-share {
+  background: var(--bg-surface);
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+}
+
+.btn-share:hover {
   background: rgba(124, 92, 252, 0.1);
 }
 
