@@ -39,7 +39,7 @@
 
     <!-- Header -->
     <header class="header">
-      <div class="header-left">
+      <a href="index.html" class="header-left">
         <svg class="logo" viewBox="0 0 32 32" width="28" height="28">
           <rect x="2" y="2" width="28" height="28" rx="8" fill="var(--accent)"/>
           <circle cx="11" cy="13" r="2.5" fill="white"/>
@@ -47,14 +47,7 @@
           <path d="M11 20c1.5 2.5 8.5 2.5 10 0" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
         </svg>
         <h1 class="header-title">Faceblock</h1>
-      </div>
-      <button class="header-btn" id="about-btn" aria-label="About" title="About Faceblock">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="16" x2="12" y2="12"/>
-          <line x1="12" y1="8" x2="12.01" y2="8"/>
-        </svg>
-      </button>
+      </a>
     </header>
 
     <!-- Upload Zone (visible when state=empty) -->
@@ -207,23 +200,23 @@
       </div>
     </section>
 
-    <!-- Privacy Footer -->
-    <footer class="privacy-footer">
-      <div class="footer-privacy">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-          <path d="M7 11V7a5 5 0 0110 0v4"/>
-        </svg>
-        <span>Your photos never leave your device. All processing happens locally in your browser.</span>
-      </div>
-      <div class="footer-links">
-        <a href="index.html" class="footer-link">Home</a>
-        <span class="footer-sep">&middot;</span>
-        <a href="https://github.com/charlesverdad/faceblock" class="footer-link">GitHub</a>
-      </div>
-    </footer>
-
   </div>
+
+  <!-- Footer (always visible) -->
+  <footer class="privacy-footer">
+    <div class="footer-privacy">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0110 0v4"/>
+      </svg>
+      <span>Your photos never leave your device. All processing happens locally in your browser.</span>
+    </div>
+    <div class="footer-links">
+      <a href="index.html" class="footer-link">Home</a>
+      <span class="footer-sep">&middot;</span>
+      <a href="https://github.com/charlesverdad/faceblock" class="footer-link" rel="noopener" target="_blank">GitHub</a>
+    </div>
+  </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/dist/face-api.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
