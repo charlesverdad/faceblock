@@ -578,13 +578,39 @@ function setupCanvasClick() {
   canvas.addEventListener(
     "touchstart",
     (e) => {
-      e.preventDefault();
       const touch = e.touches[0];
       const coords = getCanvasCoords(touch.clientX, touch.clientY);
-      if (coords) handlePointerDown(coords.x, coords.y);
+      if (!coords) return;
+
+      // Check what we'd hit before deciding to consume the touch
+      const hit = hitTest(coords.x, coords.y);
+      const hitsEmptySpace = hit.type === "empty";
+
+      if (hitsEmptySpace && !editorActive) {
+        // Activation tap — let scroll through, activate on touchend instead
+        return;
+      }
+
+      // Active interaction — prevent scroll
+      e.preventDefault();
+      handlePointerDown(coords.x, coords.y);
     },
     { passive: false },
   );
+
+  // Handle activation tap on touchend so it doesn't block scrolling
+  canvas.addEventListener("touchend", (e) => {
+    if (!editorActive && !drag.active) {
+      const touch = e.changedTouches[0];
+      const coords = getCanvasCoords(touch.clientX, touch.clientY);
+      if (!coords) return;
+      const hit = hitTest(coords.x, coords.y);
+      if (hit.type === "empty") {
+        editorActive = true;
+        showSelectionHint("Tap to add a box");
+      }
+    }
+  });
 
   canvas.addEventListener(
     "touchmove",
