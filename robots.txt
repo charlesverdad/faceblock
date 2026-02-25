@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://charlesverdad.github.io/faceblock/sitemap.xml
