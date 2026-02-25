@@ -8,7 +8,10 @@
   <meta property="og:description" content="Blur, pixelate, or block faces in photos. 100% client-side. Your photos never leave your device.">
   <meta property="og:type" content="website">
   <title>Faceblock - Private Face Anonymizer</title>
+  <meta name="theme-color" content="#7C5CFC">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='5' y='5' width='90' height='90' rx='25' fill='%237C5CFC'/><circle cx='35' cy='42' r='8' fill='white'/><path d='M65 32l3.8 7.5 8.7 1.3-6.3 6.1 1.5 8.7L65 51l-7.7 5.6 1.5-8.7-6.3-6.1 8.7-1.3z' fill='%23FFD166'/><path d='M34 65c5 8 27 8 32 0' fill='none' stroke='white' stroke-width='6' stroke-linecap='round'/></svg>">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="landing.css">
 </head>
 <body>
@@ -249,5 +252,10 @@
     </div>
   </footer>
   <script src="before-after.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
 </body>
 </html>

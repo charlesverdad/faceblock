@@ -52,6 +52,81 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ---- Install Banner ---- */
+.install-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px var(--space-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin: var(--space-md) auto var(--space-sm);
+  max-width: 1200px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  animation: installSlideIn 300ms ease;
+}
+
+.install-banner[hidden] {
+  display: none;
+}
+
+.install-banner svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.install-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.install-action {
+  flex-shrink: 0;
+  padding: 5px 16px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background var(--transition);
+}
+
+.install-action:hover {
+  background: var(--accent-hover);
+}
+
+.install-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color var(--transition);
+}
+
+.install-close:hover {
+  color: var(--text-primary);
+}
+
+@keyframes installSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ---- App Container ---- */
 #app {
   max-width: 1200px;
@@ -793,16 +868,44 @@ body {
 .privacy-footer {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  justify-content: space-between;
+  gap: var(--space-md);
   padding: var(--space-lg) 0 var(--space-sm);
   font-size: 0.78rem;
   color: var(--text-muted);
   margin-top: auto;
 }
 
-.privacy-footer svg {
+.footer-privacy {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.footer-privacy svg {
   flex-shrink: 0;
   color: var(--success);
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.footer-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+.footer-link:hover {
+  color: var(--accent);
+}
+
+.footer-sep {
+  color: var(--border);
 }
 
 /* ---- Responsive: Tablet+ ---- */
