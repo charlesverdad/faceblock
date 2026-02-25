@@ -13,9 +13,9 @@
   --bg-secondary: #1a1a2e;
   --bg-surface: #16213e;
   --bg-elevated: #1e2a4a;
-  --accent: #4361ee;
-  --accent-hover: #3a56d4;
-  --accent-glow: rgba(67, 97, 238, 0.3);
+  --accent: #10b981;
+  --accent-hover: #059669;
+  --accent-glow: rgba(16, 185, 129, 0.3);
   --success: #2ec4b6;
   --warning: #f4a261;
   --error: #e63946;
@@ -129,12 +129,12 @@ body {
 .upload-zone:focus-visible,
 .upload-zone.dragover {
   border-color: var(--accent);
-  background: rgba(67, 97, 238, 0.05);
+  background: rgba(16, 185, 129, 0.05);
 }
 
 .upload-zone.dragover {
   border-style: solid;
-  background: rgba(67, 97, 238, 0.1);
+  background: rgba(16, 185, 129, 0.1);
 }
 
 .upload-zone:focus-visible {
@@ -391,7 +391,7 @@ body {
 }
 
 .btn-download-all:hover {
-  background: rgba(67, 97, 238, 0.15);
+  background: rgba(16, 185, 129, 0.15);
 }
 
 /* ---- Controls ---- */
@@ -489,7 +489,7 @@ body {
 .mode-btn.active {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(67, 97, 238, 0.1);
+  background: rgba(16, 185, 129, 0.1);
   box-shadow: 0 0 0 1px var(--accent-glow);
 }
 
@@ -557,7 +557,7 @@ body {
 
 .emoji-btn.active {
   border-color: var(--accent);
-  background: rgba(67, 97, 238, 0.15);
+  background: rgba(16, 185, 129, 0.15);
 }
 
 /* ---- Color Picker ---- */
@@ -689,7 +689,7 @@ body {
 .format-option:has(input:checked) {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(67, 97, 238, 0.1);
+  background: rgba(16, 185, 129, 0.1);
 }
 
 .format-option input {
@@ -702,6 +702,37 @@ body {
 
 .quality-row.visible {
   display: flex;
+}
+
+/* ---- Undo/Redo Bar ---- */
+.undo-redo-bar {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-icon:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+  background: var(--bg-surface);
+}
+
+.btn-icon:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 /* ---- Action Buttons ---- */

@@ -25,6 +25,7 @@ import {
   setFaceCount,
   setActiveMode,
   setIntensity,
+  setUndoRedoState,
   renderPreview,
   renderOverlay,
   renderResult,
@@ -74,6 +75,8 @@ function createPhotoState(file) {
     faces: [],
     selectedFaceId: null,
     processedCanvas: null,
+    undoStack: [],
+    redoStack: [],
     status: "pending", // 'pending' | 'loading' | 'detected' | 'error'
     error: null,
   };
@@ -99,6 +102,8 @@ function init() {
     onNewPhoto: handleNewPhoto,
     onPhotoSwitch: handlePhotoSwitch,
     onPhotoRemoved: handlePhotoRemoved,
+    onUndo: handleUndo,
+    onRedo: handleRedo,
   });
 
   // Set initial UI state
@@ -281,6 +286,8 @@ async function switchToPhoto(photoId) {
   renderOverlay(photo.faces, photo.selectedFaceId);
   setFaceCount(photo.faces.length);
 
+  updateUndoRedoButtons();
+
   if (photo.faces.length > 0) {
     updatePreview();
     hideStatus();
@@ -405,6 +412,7 @@ function handleCanvasClick(x, y) {
   } else if (photo.selectedFaceId) {
     photo.selectedFaceId = null;
   } else {
+    pushUndo(photo);
     const size = getDefaultFaceSize();
     const newFace = {
       id: `manual-${Date.now()}`,
@@ -430,6 +438,7 @@ function handleCanvasClick(x, y) {
 function handleFaceDrawn(box) {
   const photo = getActivePhoto();
   if (!photo?.fullCanvas) return;
+  pushUndo(photo);
   const newFace = {
     id: `manual-${Date.now()}`,
     box,
@@ -449,6 +458,7 @@ function handleFaceMoved(faceId, newBox) {
   if (!photo) return;
   const face = photo.faces.find((f) => f.id === faceId);
   if (!face) return;
+  pushUndo(photo);
   face.box = newBox;
   renderOverlay(photo.faces, photo.selectedFaceId);
   updatePreview();
@@ -459,6 +469,7 @@ function handleFaceResized(faceId, newBox) {
   if (!photo) return;
   const face = photo.faces.find((f) => f.id === faceId);
   if (!face) return;
+  pushUndo(photo);
   face.box = newBox;
   renderOverlay(photo.faces, photo.selectedFaceId);
   updatePreview();
@@ -469,12 +480,88 @@ function handleFaceRemoved() {
   if (!photo?.selectedFaceId) return;
   const idx = photo.faces.findIndex((f) => f.id === photo.selectedFaceId);
   if (idx >= 0 && photo.faces[idx].manual) {
+    pushUndo(photo);
     photo.faces.splice(idx, 1);
     photo.selectedFaceId = null;
     renderOverlay(photo.faces, photo.selectedFaceId);
     setFaceCount(photo.faces.length);
     updatePreview();
   }
+}
+
+// ---- Undo / Redo ----
+
+const MAX_UNDO = 50;
+
+function pushUndo(photo) {
+  const snapshot = photo.faces.map((f) => ({
+    ...f,
+    box: { ...f.box },
+    landmarks: f.landmarks,
+  }));
+  photo.undoStack.push({
+    faces: snapshot,
+    selectedFaceId: photo.selectedFaceId,
+  });
+  if (photo.undoStack.length > MAX_UNDO) photo.undoStack.shift();
+  photo.redoStack = [];
+  updateUndoRedoButtons();
+}
+
+function handleUndo() {
+  const photo = getActivePhoto();
+  if (!photo || photo.undoStack.length === 0) return;
+
+  const current = photo.faces.map((f) => ({
+    ...f,
+    box: { ...f.box },
+    landmarks: f.landmarks,
+  }));
+  photo.redoStack.push({
+    faces: current,
+    selectedFaceId: photo.selectedFaceId,
+  });
+
+  const prev = photo.undoStack.pop();
+  photo.faces = prev.faces;
+  photo.selectedFaceId = prev.selectedFaceId;
+
+  renderOverlay(photo.faces, photo.selectedFaceId);
+  setFaceCount(photo.faces.length);
+  updatePreview();
+  updateUndoRedoButtons();
+}
+
+function handleRedo() {
+  const photo = getActivePhoto();
+  if (!photo || photo.redoStack.length === 0) return;
+
+  const current = photo.faces.map((f) => ({
+    ...f,
+    box: { ...f.box },
+    landmarks: f.landmarks,
+  }));
+  photo.undoStack.push({
+    faces: current,
+    selectedFaceId: photo.selectedFaceId,
+  });
+
+  const next = photo.redoStack.pop();
+  photo.faces = next.faces;
+  photo.selectedFaceId = next.selectedFaceId;
+
+  renderOverlay(photo.faces, photo.selectedFaceId);
+  setFaceCount(photo.faces.length);
+  updatePreview();
+  updateUndoRedoButtons();
+}
+
+function updateUndoRedoButtons() {
+  const photo = getActivePhoto();
+  setUndoRedoState(
+    photo ? photo.undoStack.length > 0 : false,
+    photo ? photo.redoStack.length > 0 : false,
+  );
 }
 
 // ---- Format & Export ----

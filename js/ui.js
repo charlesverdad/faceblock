@@ -22,6 +22,8 @@ let callbacks = {
   onNewPhoto: null,
   onPhotoSwitch: null,
   onPhotoRemoved: null,
+  onUndo: null,
+  onRedo: null,
 };
 
 // Canvas interaction state
@@ -84,6 +86,8 @@ export function setupUI(cbs) {
     downloadBtn: document.getElementById("download-btn"),
     downloadAllBtn: document.getElementById("download-all-btn"),
     newPhotoBtn: document.getElementById("new-photo-btn"),
+    undoBtn: document.getElementById("undo-btn"),
+    redoBtn: document.getElementById("redo-btn"),
 
     thumbnailStrip: document.getElementById("thumbnail-strip"),
     faceCount: document.getElementById("face-count"),
@@ -277,6 +281,8 @@ function setupButtons() {
     callbacks.onDownloadAll?.(),
   );
   els.newPhotoBtn.addEventListener("click", () => callbacks.onNewPhoto?.());
+  els.undoBtn?.addEventListener("click", () => callbacks.onUndo?.());
+  els.redoBtn?.addEventListener("click", () => callbacks.onRedo?.());
 }
 
 // ---- Canvas Interaction (tap to select, drag to move/draw/resize) ----
@@ -295,18 +301,43 @@ function setupCanvasClick() {
     };
   }
 
-  function getHandleSize(face) {
-    const s = Math.min(face.box.width, face.box.height);
-    return Math.max(12, Math.min(28, s * 0.18));
+  function getDisplayScale() {
+    const rect = canvas.getBoundingClientRect();
+    return rect.width > 0 ? rect.width / canvas.width : 1;
+  }
+
+  function getHandleSize() {
+    // Ensure minimum 44px screen touch target
+    const displayScale = getDisplayScale();
+    const minCanvasPx = 44 / displayScale;
+    return Math.max(minCanvasPx, 24);
+  }
+
+  function getDeleteBtnSize() {
+    const displayScale = getDisplayScale();
+    const minCanvasPx = 32 / displayScale;
+    return Math.max(minCanvasPx, 20);
   }
 
   function hitTest(cx, cy) {
-    // Check resize handle of selected face first
     if (currentSelectedId) {
       const selected = currentFaces.find((f) => f.id === currentSelectedId);
       if (selected) {
         const b = selected.box;
-        const hs = getHandleSize(selected);
+
+        // Check delete button (top-right)
+        const ds = getDeleteBtnSize();
+        const dx = b.x + b.width - ds / 2;
+        const dy = b.y - ds / 2;
+        const dCx = dx + ds / 2;
+        const dCy = dy + ds / 2;
+        const dDist = Math.sqrt((cx - dCx) ** 2 + (cy - dCy) ** 2);
+        if (dDist <= ds / 2 + 4) {
+          return { type: "delete", face: selected };
+        }
+
+        // Check resize handle (bottom-right)
+        const hs = getHandleSize();
         const hx = b.x + b.width - hs;
         const hy = b.y + b.height - hs;
         if (cx >= hx && cx <= hx + hs && cy >= hy && cy <= hy + hs) {
@@ -364,16 +395,16 @@ function setupCanvasClick() {
       const dx = drag.currentX - drag.startX;
       const dy = drag.currentY - drag.startY;
       const b = drag.origBox;
-      ctx.strokeStyle = "#4361ee";
+      ctx.strokeStyle = "#10b981";
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 3]);
       ctx.strokeRect(b.x + dx, b.y + dy, b.width, b.height);
-      ctx.fillStyle = "rgba(67,97,238,0.08)";
+      ctx.fillStyle = "rgba(16,185,129,0.08)";
       ctx.fillRect(b.x + dx, b.y + dy, b.width, b.height);
       ctx.setLineDash([]);
     } else if (drag.mode === "resize") {
       const box = getResizeBox();
-      ctx.strokeStyle = "#4361ee";
+      ctx.strokeStyle = "#10b981";
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 3]);
       ctx.strokeRect(box.x, box.y, box.width, box.height);
@@ -388,7 +419,11 @@ function setupCanvasClick() {
     drag.currentX = x;
     drag.currentY = y;
 
-    if (hit.type === "resize") {
+    if (hit.type === "delete") {
+      // Immediately delete the face
+      callbacks.onFaceRemoved?.();
+      return;
+    } else if (hit.type === "resize") {
       drag.active = true;
       drag.mode = "resize";
       drag.targetFaceId = hit.face.id;
@@ -467,7 +502,9 @@ function setupCanvasClick() {
     const coords = getCanvasCoords(e.clientX, e.clientY);
     if (!coords) return;
     const hit = hitTest(coords.x, coords.y);
-    if (hit.type === "resize") {
+    if (hit.type === "delete") {
+      canvas.style.cursor = "pointer";
+    } else if (hit.type === "resize") {
       canvas.style.cursor = "nwse-resize";
     } else if (hit.type === "face" && hit.face.id === currentSelectedId) {
       canvas.style.cursor = "move";
@@ -556,6 +593,17 @@ function setupKeyboardShortcuts() {
     if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
       callbacks.onFaceRemoved?.();
+      return;
+    }
+
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "z") {
+      e.preventDefault();
+      callbacks.onRedo?.();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+      e.preventDefault();
+      callbacks.onUndo?.();
       return;
     }
 
@@ -753,10 +801,10 @@ export function renderOverlay(faces, selectedFaceId) {
     const isManual = face.manual;
 
     ctx.strokeStyle = isSelected
-      ? "#4361ee"
+      ? "#10b981"
       : isManual
         ? "#f4a261"
-        : "rgba(67,97,238,0.7)";
+        : "rgba(16,185,129,0.7)";
     ctx.lineWidth = Math.max(2, Math.min(width, height) * 0.02);
     ctx.setLineDash(isManual ? [8, 4] : []);
 
@@ -768,7 +816,7 @@ export function renderOverlay(faces, selectedFaceId) {
 
     // Light fill on hover/selected
     if (isSelected) {
-      ctx.fillStyle = "rgba(67,97,238,0.1)";
+      ctx.fillStyle = "rgba(16,185,129,0.1)";
       ctx.fill();
     }
 
@@ -780,7 +828,7 @@ export function renderOverlay(faces, selectedFaceId) {
     const textWidth = ctx.measureText(label).width;
     const pad = 4;
 
-    ctx.fillStyle = isSelected ? "#4361ee" : "rgba(67,97,238,0.8)";
+    ctx.fillStyle = isSelected ? "#10b981" : "rgba(16,185,129,0.8)";
     ctx.fillRect(
       x,
       y - fontSize - pad * 2,
@@ -792,27 +840,55 @@ export function renderOverlay(faces, selectedFaceId) {
     ctx.textBaseline = "top";
     ctx.fillText(label, x + pad, y - fontSize - pad);
 
-    // Resize handle on selected face (lower-right corner)
+    // Controls on selected face
     if (isSelected) {
-      const hs = Math.max(12, Math.min(28, Math.min(width, height) * 0.18));
+      const displayScale =
+        overlay.getBoundingClientRect().width / overlay.width || 1;
+
+      // Resize handle (bottom-right corner) — minimum 44px screen touch target
+      const hs = Math.max(44 / displayScale, 24);
       const hx = x + width - hs;
       const hy = y + height - hs;
 
-      // Handle background
-      ctx.fillStyle = "#4361ee";
+      ctx.fillStyle = "#10b981";
       ctx.beginPath();
-      ctx.roundRect(hx, hy, hs, hs, 3);
+      ctx.roundRect(hx, hy, hs, hs, hs * 0.15);
       ctx.fill();
 
-      // Handle icon (diagonal resize lines)
+      // Grip lines inside resize handle
       ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = Math.max(1.5, hs * 0.06);
       ctx.beginPath();
-      ctx.moveTo(hx + hs * 0.3, hy + hs * 0.9);
-      ctx.lineTo(hx + hs * 0.9, hy + hs * 0.3);
-      ctx.moveTo(hx + hs * 0.55, hy + hs * 0.9);
-      ctx.lineTo(hx + hs * 0.9, hy + hs * 0.55);
+      ctx.moveTo(hx + hs * 0.25, hy + hs * 0.85);
+      ctx.lineTo(hx + hs * 0.85, hy + hs * 0.25);
+      ctx.moveTo(hx + hs * 0.45, hy + hs * 0.85);
+      ctx.lineTo(hx + hs * 0.85, hy + hs * 0.45);
+      ctx.moveTo(hx + hs * 0.65, hy + hs * 0.85);
+      ctx.lineTo(hx + hs * 0.85, hy + hs * 0.65);
       ctx.stroke();
+
+      // Delete button (top-right corner) — circle with X
+      const ds = Math.max(32 / displayScale, 20);
+      const dcx = x + width - ds / 2;
+      const dcy = y - ds / 2;
+
+      ctx.fillStyle = "rgba(230, 57, 70, 0.9)";
+      ctx.beginPath();
+      ctx.arc(dcx, dcy, ds / 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // X inside delete button
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = Math.max(2, ds * 0.1);
+      ctx.lineCap = "round";
+      const xOff = ds * 0.22;
+      ctx.beginPath();
+      ctx.moveTo(dcx - xOff, dcy - xOff);
+      ctx.lineTo(dcx + xOff, dcy + xOff);
+      ctx.moveTo(dcx + xOff, dcy - xOff);
+      ctx.lineTo(dcx - xOff, dcy + xOff);
+      ctx.stroke();
+      ctx.lineCap = "butt";
     }
   }
 }
@@ -828,6 +904,11 @@ export function renderResult(processedCanvas) {
   // Clear overlay
   const overlay = els.overlayCanvas;
   overlay.getContext("2d").clearRect(0, 0, overlay.width, overlay.height);
+}
+
+export function setUndoRedoState(canUndo, canRedo) {
+  if (els.undoBtn) els.undoBtn.disabled = !canUndo;
+  if (els.redoBtn) els.redoBtn.disabled = !canRedo;
 }
 
 export function resetUI() {
