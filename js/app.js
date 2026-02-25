@@ -38,6 +38,9 @@ const state = {
   photos: [], // Array of per-photo state objects
   activePhotoId: null,
 
+  // Track if user has downloaded
+  hasDownloaded: false,
+
   // Global settings (shared across all photos)
   effectId: "blur",
   intensity: 70,
@@ -73,6 +76,7 @@ function createPhotoState(file) {
     fullCanvas: null,
     thumbnailDataUrl: null,
     faces: [],
+    detectedFaceCount: 0,
     selectedFaceId: null,
     processedCanvas: null,
     undoStack: [],
@@ -188,6 +192,7 @@ async function processPhoto(photo) {
 
     photo.fullCanvas = fullCanvas;
     photo.faces = faces;
+    photo.detectedFaceCount = faces.length;
     photo.status = "detected";
 
     renderThumbnailStrip(state.photos, state.activePhotoId);
@@ -197,7 +202,7 @@ async function processPhoto(photo) {
       showState("editing");
       renderPreview(fullCanvas);
       renderOverlay(faces, null);
-      setFaceCount(faces.length);
+      setFaceCount(photo.detectedFaceCount);
 
       if (faces.length === 0) {
         showStatus(
@@ -284,7 +289,7 @@ async function switchToPhoto(photoId) {
   showState("editing");
   renderPreview(photo.fullCanvas);
   renderOverlay(photo.faces, photo.selectedFaceId);
-  setFaceCount(photo.faces.length);
+  setFaceCount(photo.detectedFaceCount);
 
   updateUndoRedoButtons();
 
@@ -292,10 +297,7 @@ async function switchToPhoto(photoId) {
     updatePreview();
     hideStatus();
   } else {
-    showStatus(
-      "No faces detected. Click on the image to manually select areas.",
-      "warning",
-    );
+    showStatus("No faces detected. Tap on the image to add areas.", "warning");
   }
 }
 
@@ -368,8 +370,9 @@ async function handleSensitivityChange(sensitivity) {
     );
 
     photo.faces = [...detected, ...manualFaces];
+    photo.detectedFaceCount = detected.length;
     renderOverlay(photo.faces, photo.selectedFaceId);
-    setFaceCount(photo.faces.length);
+    setFaceCount(photo.detectedFaceCount);
     renderThumbnailStrip(state.photos, state.activePhotoId);
     updatePreview();
     hideStatus();
@@ -385,17 +388,17 @@ function getDefaultFaceSize() {
   const photo = getActivePhoto();
   if (!photo?.fullCanvas) return 100;
 
+  const minDim = Math.min(photo.fullCanvas.width, photo.fullCanvas.height);
+  const minSize = Math.max(minDim * 0.12, 100);
+
   const detectedFaces = photo.faces.filter((f) => !f.manual);
   if (detectedFaces.length === 0) {
-    return (
-      Math.min(photo.fullCanvas.width, photo.fullCanvas.height) *
-      MANUAL_REGION_RATIO
-    );
+    return Math.max(minDim * MANUAL_REGION_RATIO, minSize);
   }
   const sizes = detectedFaces
     .map((f) => Math.max(f.box.width, f.box.height))
     .sort((a, b) => a - b);
-  return sizes[Math.floor(sizes.length / 2)];
+  return Math.max(sizes[Math.floor(sizes.length / 2)], minSize);
 }
 
 function handleCanvasClick(x, y) {
@@ -414,11 +417,13 @@ function handleCanvasClick(x, y) {
   } else {
     pushUndo(photo);
     const size = getDefaultFaceSize();
+    const cw = photo.fullCanvas.width;
+    const ch = photo.fullCanvas.height;
     const newFace = {
       id: `manual-${Date.now()}`,
       box: {
-        x: Math.max(0, x - size / 2),
-        y: Math.max(0, y - size / 2),
+        x: Math.max(0, Math.min(x - size / 2, cw - size)),
+        y: Math.max(0, Math.min(y - size / 2, ch - size)),
         width: size,
         height: size,
       },
@@ -431,7 +436,6 @@ function handleCanvasClick(x, y) {
   }
 
   renderOverlay(photo.faces, photo.selectedFaceId);
-  setFaceCount(photo.faces.length);
   updatePreview();
 }
 
@@ -449,7 +453,6 @@ function handleFaceDrawn(box) {
   photo.faces.push(newFace);
   photo.selectedFaceId = newFace.id;
   renderOverlay(photo.faces, photo.selectedFaceId);
-  setFaceCount(photo.faces.length);
   updatePreview();
 }
 
@@ -478,13 +481,18 @@ function handleFaceResized(faceId, newBox) {
 function handleFaceRemoved() {
   const photo = getActivePhoto();
   if (!photo?.selectedFaceId) return;
-  const idx = photo.faces.findIndex((f) => f.id === photo.selectedFaceId);
+  const face = photo.faces.find((f) => f.id === photo.selectedFaceId);
+  const idx = photo.faces.indexOf(face);
   if (idx >= 0) {
     pushUndo(photo);
+    // If removing a detected face, update the detected count
+    if (face && !face.manual) {
+      photo.detectedFaceCount = Math.max(0, photo.detectedFaceCount - 1);
+      setFaceCount(photo.detectedFaceCount);
+    }
     photo.faces.splice(idx, 1);
     photo.selectedFaceId = null;
     renderOverlay(photo.faces, photo.selectedFaceId);
-    setFaceCount(photo.faces.length);
     updatePreview();
   }
 }
@@ -527,7 +535,6 @@ function handleUndo() {
   photo.selectedFaceId = prev.selectedFaceId;
 
   renderOverlay(photo.faces, photo.selectedFaceId);
-  setFaceCount(photo.faces.length);
   updatePreview();
   updateUndoRedoButtons();
 }
@@ -551,7 +558,6 @@ function handleRedo() {
   photo.selectedFaceId = next.selectedFaceId;
 
   renderOverlay(photo.faces, photo.selectedFaceId);
-  setFaceCount(photo.faces.length);
   updatePreview();
   updateUndoRedoButtons();
 }
@@ -594,6 +600,7 @@ async function handleDownload() {
       state.quality,
       photo.originalFilename,
     );
+    state.hasDownloaded = true;
     showStatus(`Saved as ${filename}`, "success");
   } catch (err) {
     console.error("Export error:", err);
@@ -658,6 +665,7 @@ async function handleDownloadAll() {
   try {
     const zipBlob = await zip.generateAsync({ type: "blob" });
     downloadBlob(zipBlob, "faceblock_photos.zip");
+    state.hasDownloaded = true;
     showStatus(`Downloaded ${total} photos`, "success");
   } catch (err) {
     console.error("ZIP error:", err);
@@ -668,8 +676,15 @@ async function handleDownloadAll() {
 // ---- Reset ----
 
 function handleNewPhoto() {
+  if (!state.hasDownloaded && state.photos.length > 0) {
+    const confirmed = confirm(
+      "You haven't downloaded your photos yet. Start over anyway?",
+    );
+    if (!confirmed) return;
+  }
   state.photos = [];
   state.activePhotoId = null;
+  state.hasDownloaded = false;
   resetUI();
 }
 

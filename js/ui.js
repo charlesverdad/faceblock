@@ -306,20 +306,14 @@ function setupCanvasClick() {
     return rect.width > 0 ? rect.width / canvas.width : 1;
   }
 
-  function getHandleSize(face) {
+  function getHandleSize() {
     const displayScale = getDisplayScale();
-    const faceMin = Math.min(face.box.width, face.box.height);
-    // 22px screen minimum, but never more than 25% of the face
-    const fromScreen = 22 / displayScale;
-    return Math.min(Math.max(fromScreen, 14), faceMin * 0.25);
+    return 24 / displayScale;
   }
 
-  function getDeleteBtnSize(face) {
+  function getDeleteBtnSize() {
     const displayScale = getDisplayScale();
-    const faceMin = Math.min(face.box.width, face.box.height);
-    // 18px screen minimum, but never more than 20% of the face
-    const fromScreen = 18 / displayScale;
-    return Math.min(Math.max(fromScreen, 12), faceMin * 0.2);
+    return 22 / displayScale;
   }
 
   function hitTest(cx, cy) {
@@ -329,7 +323,7 @@ function setupCanvasClick() {
         const b = selected.box;
 
         // Check delete button (top-right)
-        const ds = getDeleteBtnSize(selected);
+        const ds = getDeleteBtnSize();
         const dx = b.x + b.width - ds / 2;
         const dy = b.y - ds / 2;
         const dCx = dx + ds / 2;
@@ -340,7 +334,7 @@ function setupCanvasClick() {
         }
 
         // Check resize handle (bottom-right)
-        const hs = getHandleSize(selected);
+        const hs = getHandleSize();
         const hx = b.x + b.width - hs;
         const hy = b.y + b.height - hs;
         if (cx >= hx && cx <= hx + hs && cy >= hy && cy <= hy + hs) {
@@ -364,14 +358,6 @@ function setupCanvasClick() {
     return { type: "empty" };
   }
 
-  function getDragBox() {
-    const x1 = Math.min(drag.startX, drag.currentX);
-    const y1 = Math.min(drag.startY, drag.currentY);
-    const x2 = Math.max(drag.startX, drag.currentX);
-    const y2 = Math.max(drag.startY, drag.currentY);
-    return { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
-  }
-
   function getResizeBox() {
     const dx = drag.currentX - drag.startX;
     const dy = drag.currentY - drag.startY;
@@ -387,24 +373,25 @@ function setupCanvasClick() {
     renderOverlay(currentFaces, currentSelectedId);
     const ctx = canvas.getContext("2d");
 
-    if (drag.mode === "draw") {
-      const box = getDragBox();
-      ctx.strokeStyle = "#f4a261";
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 3]);
-      ctx.strokeRect(box.x, box.y, box.width, box.height);
-      ctx.setLineDash([]);
-    } else if (drag.mode === "move") {
+    if (drag.mode === "move") {
       const dx = drag.currentX - drag.startX;
       const dy = drag.currentY - drag.startY;
       const b = drag.origBox;
-      ctx.strokeStyle = "#7C5CFC";
+      const newCX = b.x + b.width / 2 + dx;
+      const newCY = b.y + b.height / 2 + dy;
+      const outside = isOutsideCanvas(newCX, newCY);
+
+      ctx.globalAlpha = outside ? 0.35 : 1;
+      ctx.strokeStyle = outside ? "#EF4444" : "#7C5CFC";
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 3]);
       ctx.strokeRect(b.x + dx, b.y + dy, b.width, b.height);
-      ctx.fillStyle = "rgba(124,92,252,0.08)";
+      ctx.fillStyle = outside
+        ? "rgba(239,68,68,0.08)"
+        : "rgba(124,92,252,0.08)";
       ctx.fillRect(b.x + dx, b.y + dy, b.width, b.height);
       ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
     } else if (drag.mode === "resize") {
       const box = getResizeBox();
       ctx.strokeStyle = "#7C5CFC";
@@ -415,6 +402,19 @@ function setupCanvasClick() {
     }
   }
 
+  let savedFaceCountText = "";
+
+  function setDragHint(text) {
+    savedFaceCountText = els.faceCount.textContent;
+    els.faceCount.textContent = text;
+    els.faceCount.style.color = "var(--text-muted)";
+  }
+
+  function clearDragHint() {
+    els.faceCount.textContent = savedFaceCountText;
+    els.faceCount.style.color = "";
+  }
+
   function handlePointerDown(x, y) {
     const hit = hitTest(x, y);
     drag.startX = x;
@@ -423,7 +423,6 @@ function setupCanvasClick() {
     drag.currentY = y;
 
     if (hit.type === "delete") {
-      // Immediately delete the face
       callbacks.onFaceRemoved?.();
       return;
     } else if (hit.type === "resize") {
@@ -437,15 +436,12 @@ function setupCanvasClick() {
       drag.mode = "move";
       drag.targetFaceId = hit.face.id;
       drag.origBox = { ...hit.face.box };
+      setDragHint("Drag outside to remove");
     } else if (hit.type === "face") {
-      // Tap unselected face — select it
       callbacks.onCanvasClick?.(x, y);
     } else {
-      // Empty space — start drawing new box
-      drag.active = true;
-      drag.mode = "draw";
-      drag.targetFaceId = null;
-      drag.origBox = null;
+      // Empty space — tap to add/deselect (no drag-draw)
+      callbacks.onCanvasClick?.(x, y);
     }
   }
 
@@ -456,6 +452,10 @@ function setupCanvasClick() {
     drawDragPreview();
   }
 
+  function isOutsideCanvas(x, y) {
+    return x < 0 || y < 0 || x > canvas.width || y > canvas.height;
+  }
+
   function handlePointerUp(x, y) {
     if (!drag.active) return;
     drag.currentX = x;
@@ -464,18 +464,14 @@ function setupCanvasClick() {
     const dy = y - drag.startY;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    if (drag.mode === "draw") {
-      if (dist < 5) {
-        // Tiny drag = click on empty space
-        callbacks.onCanvasClick?.(x, y);
-      } else {
-        const box = getDragBox();
-        if (box.width > 10 && box.height > 10) {
-          callbacks.onFaceDrawn?.(box);
-        }
-      }
-    } else if (drag.mode === "move") {
-      if (dist > 3) {
+    if (drag.mode === "move") {
+      clearDragHint();
+      const newCenterX = drag.origBox.x + drag.origBox.width / 2 + dx;
+      const newCenterY = drag.origBox.y + drag.origBox.height / 2 + dy;
+      if (isOutsideCanvas(newCenterX, newCenterY)) {
+        // Dragged outside — remove face
+        callbacks.onFaceRemoved?.();
+      } else if (dist > 3) {
         callbacks.onFaceMoved?.(drag.targetFaceId, {
           x: drag.origBox.x + dx,
           y: drag.origBox.y + dy,
@@ -514,7 +510,7 @@ function setupCanvasClick() {
     } else if (hit.type === "face") {
       canvas.style.cursor = "pointer";
     } else {
-      canvas.style.cursor = "crosshair";
+      canvas.style.cursor = "pointer";
     }
   });
 
@@ -750,11 +746,12 @@ export function hideStatus() {
   els.statusBar.classList.remove("visible");
 }
 
-export function setFaceCount(count) {
-  els.faceCount.textContent =
-    count > 0
-      ? `${count} face${count > 1 ? "s" : ""} detected`
-      : "No faces detected (click image to add)";
+export function setFaceCount(detectedCount) {
+  if (detectedCount > 0) {
+    els.faceCount.textContent = `${detectedCount} face${detectedCount > 1 ? "s" : ""} detected \u00B7 Tap to add more`;
+  } else {
+    els.faceCount.textContent = "No faces detected \u00B7 Tap to add areas";
+  }
 }
 
 /**
@@ -848,9 +845,8 @@ export function renderOverlay(faces, selectedFaceId) {
       const displayScale =
         overlay.getBoundingClientRect().width / overlay.width || 1;
 
-      // Resize handle (bottom-right corner)
-      const faceMin = Math.min(width, height);
-      const hs = Math.min(Math.max(22 / displayScale, 14), faceMin * 0.25);
+      // Resize handle (bottom-right corner) — constant screen size
+      const hs = 24 / displayScale;
       const hx = x + width - hs;
       const hy = y + height - hs;
 
@@ -871,8 +867,8 @@ export function renderOverlay(faces, selectedFaceId) {
       ctx.lineTo(hx + hs * 0.85, hy + hs * 0.65);
       ctx.stroke();
 
-      // Delete button (top-right corner) — circle with X
-      const ds = Math.min(Math.max(18 / displayScale, 12), faceMin * 0.2);
+      // Delete button (top-right corner) — constant screen size
+      const ds = 22 / displayScale;
       const dcx = x + width - ds / 2;
       const dcy = y - ds / 2;
 

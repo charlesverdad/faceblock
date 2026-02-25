@@ -116,10 +116,8 @@
     }
   });
 
-  // --- Mobile scroll-driven reveal ---
+  // --- Scroll-driven reveal ---
   function setupScrollDriven() {
-    if (window.innerWidth > 768) return;
-
     let hasInteracted = false;
 
     const observer = new IntersectionObserver(
