@@ -44,6 +44,9 @@ const drag = {
 let currentFaces = [];
 let currentSelectedId = null;
 
+// Editor must be "activated" with a first tap before empty-space taps create boxes
+let editorActive = false;
+
 /**
  * Initialize UI: cache DOM refs, set up event listeners.
  */
@@ -475,10 +478,18 @@ function setupCanvasClick() {
       drag.origBox = { ...hit.face.box };
       setDragHint("Drag outside to remove");
     } else if (hit.type === "face") {
+      editorActive = true;
       callbacks.onCanvasClick?.(x, y);
     } else {
-      // Empty space — tap to add/deselect (no drag-draw)
-      callbacks.onCanvasClick?.(x, y);
+      // Empty space
+      if (!editorActive) {
+        // First tap activates the editor
+        editorActive = true;
+        showSelectionHint("Tap to add a box");
+      } else {
+        // Editor already active — create a box
+        callbacks.onCanvasClick?.(x, y);
+      }
     }
   }
 
@@ -594,6 +605,24 @@ function setupCanvasClick() {
     const coords = getCanvasCoords(touch.clientX, touch.clientY);
     if (coords) handlePointerUp(coords.x, coords.y);
   });
+
+  // Deactivate editor when clicking/tapping outside the canvas
+  document.addEventListener("mousedown", (e) => {
+    if (!canvas.contains(e.target)) {
+      editorActive = false;
+      clearSelectionHint();
+    }
+  });
+  document.addEventListener(
+    "touchstart",
+    (e) => {
+      if (!canvas.contains(e.target)) {
+        editorActive = false;
+        clearSelectionHint();
+      }
+    },
+    { passive: true },
+  );
 }
 
 // ---- Keyboard Shortcuts ----
@@ -959,6 +988,7 @@ export function setUndoRedoState(canUndo, canRedo) {
 }
 
 export function resetUI() {
+  editorActive = false;
   els.fileInput.value = "";
   showState("empty");
   hideStatus();
