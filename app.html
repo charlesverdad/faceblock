@@ -224,6 +224,8 @@
       <a href="index.html" class="footer-link">Home</a>
       <span class="footer-sep">&middot;</span>
       <a href="https://github.com/charlesverdad/faceblock" class="footer-link" rel="noopener" target="_blank">GitHub</a>
+      <span class="footer-sep">&middot;</span>
+      <button id="footer-install-btn" class="footer-link footer-install" hidden>Install App</button>
     </div>
   </footer>
 
@@ -238,37 +240,39 @@
 
     // PWA Install Prompt
     (function () {
-      let deferredPrompt = null;
-      const banner = document.getElementById('install-banner');
-      const installBtn = document.getElementById('install-btn');
-      const dismissBtn = document.getElementById('install-dismiss');
+      var deferredPrompt = null;
+      var banner = document.getElementById('install-banner');
+      var installBtn = document.getElementById('install-btn');
+      var dismissBtn = document.getElementById('install-dismiss');
+      var footerInstallBtn = document.getElementById('footer-install-btn');
 
-      // Don't show if user previously dismissed
-      if (localStorage.getItem('faceblock-install-dismissed')) return;
-
-      window.addEventListener('beforeinstallprompt', function (e) {
-        e.preventDefault();
-        deferredPrompt = e;
-        banner.hidden = false;
-      });
-
-      installBtn.addEventListener('click', function () {
+      function triggerInstall() {
         if (!deferredPrompt) return;
         deferredPrompt.prompt();
         deferredPrompt.userChoice.then(function () {
           deferredPrompt = null;
           banner.hidden = true;
+          footerInstallBtn.hidden = true;
         });
+      }
+
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        banner.hidden = false;
+        footerInstallBtn.hidden = false;
       });
+
+      installBtn.addEventListener('click', triggerInstall);
+      footerInstallBtn.addEventListener('click', triggerInstall);
 
       dismissBtn.addEventListener('click', function () {
         banner.hidden = true;
-        localStorage.setItem('faceblock-install-dismissed', '1');
       });
 
-      // Hide banner if app is already installed
       window.addEventListener('appinstalled', function () {
         banner.hidden = true;
+        footerInstallBtn.hidden = true;
       });
     })();
   </script>

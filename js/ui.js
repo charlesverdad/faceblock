@@ -108,7 +108,6 @@ export function setupUI(cbs) {
   setupCanvasClick();
   setupKeyboardShortcuts();
   setupThumbnailStrip();
-  setupHeaderAutoHide();
 }
 
 // ---- File Input ----
@@ -397,30 +396,41 @@ function setupCanvasClick() {
   }
 
   function drawDragPreview() {
-    const ctx = canvas.getContext("2d");
-
     if (drag.mode === "move") {
-      renderOverlay(currentFaces, currentSelectedId);
       const dx = drag.currentX - drag.startX;
       const dy = drag.currentY - drag.startY;
       const b = drag.origBox;
-      const newCX = b.x + b.width / 2 + dx;
-      const newCY = b.y + b.height / 2 + dy;
-      const outside = isOutsideCanvas(newCX, newCY);
+      const movedBox = {
+        x: b.x + dx,
+        y: b.y + dy,
+        width: b.width,
+        height: b.height,
+      };
+      const tempFaces = currentFaces.map((f) =>
+        f.id === drag.targetFaceId ? { ...f, box: movedBox } : f,
+      );
+      renderOverlay(tempFaces, currentSelectedId);
 
-      ctx.globalAlpha = outside ? 0.35 : 1;
-      ctx.strokeStyle = outside ? "#EF4444" : "#7C5CFC";
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 3]);
-      ctx.strokeRect(b.x + dx, b.y + dy, b.width, b.height);
-      ctx.fillStyle = outside
-        ? "rgba(239,68,68,0.08)"
-        : "rgba(124,92,252,0.08)";
-      ctx.fillRect(b.x + dx, b.y + dy, b.width, b.height);
-      ctx.setLineDash([]);
-      ctx.globalAlpha = 1;
+      // If outside canvas, draw a red tint over the moved box
+      const newCX = movedBox.x + movedBox.width / 2;
+      const newCY = movedBox.y + movedBox.height / 2;
+      if (isOutsideCanvas(newCX, newCY)) {
+        const ctx = canvas.getContext("2d");
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = "#EF4444";
+        const r = Math.min(movedBox.width, movedBox.height) * 0.1;
+        ctx.beginPath();
+        ctx.roundRect(
+          movedBox.x,
+          movedBox.y,
+          movedBox.width,
+          movedBox.height,
+          r,
+        );
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
     } else if (drag.mode === "resize") {
-      // Render overlay with the resized box live
       const box = getResizeBox();
       const tempFaces = currentFaces.map((f) =>
         f.id === drag.targetFaceId ? { ...f, box } : f,
@@ -750,52 +760,6 @@ export function renderThumbnailStrip(photos, activePhotoId) {
       inline: "nearest",
     });
   }
-}
-
-// ---- Header Auto-hide on Scroll ----
-
-function setupHeaderAutoHide() {
-  const header = document.querySelector(".header");
-  if (!header) return;
-
-  let lastScrollY = window.scrollY;
-  let lastDirection = 0; // 1 = down, -1 = up
-  let directionChangeY = window.scrollY;
-  let ticking = false;
-  const DEAD_ZONE = 30; // px of scroll in new direction before toggling
-
-  window.addEventListener(
-    "scroll",
-    () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        const currentY = window.scrollY;
-        const isEditing = els.app.dataset.state === "editing";
-        const direction = currentY > lastScrollY ? 1 : -1;
-
-        // Track direction changes
-        if (direction !== lastDirection) {
-          directionChangeY = lastScrollY;
-          lastDirection = direction;
-        }
-
-        const delta = Math.abs(currentY - directionChangeY);
-
-        if (!isEditing) {
-          header.classList.remove("header--hidden");
-        } else if (direction === 1 && currentY > 60 && delta > DEAD_ZONE) {
-          header.classList.add("header--hidden");
-        } else if (direction === -1 && delta > DEAD_ZONE) {
-          header.classList.remove("header--hidden");
-        }
-
-        lastScrollY = currentY;
-        ticking = false;
-      });
-    },
-    { passive: true },
-  );
 }
 
 // ---- State Management ----
