@@ -9,21 +9,21 @@
 }
 
 :root {
-  --bg-primary: #0f0f13;
-  --bg-secondary: #1a1a2e;
-  --bg-surface: #16213e;
-  --bg-elevated: #1e2a4a;
-  --accent: #10b981;
-  --accent-hover: #059669;
-  --accent-glow: rgba(16, 185, 129, 0.3);
-  --success: #2ec4b6;
-  --warning: #f4a261;
-  --error: #e63946;
-  --text-primary: #e8e8ec;
-  --text-secondary: #8888a0;
-  --text-muted: #55556a;
-  --border: #2a2a3e;
-  --border-hover: #3a3a52;
+  --bg-primary: #FAFAF8;
+  --bg-secondary: #F2F0ED;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --accent: #7C5CFC;
+  --accent-hover: #6A4CE0;
+  --accent-glow: rgba(124, 92, 252, 0.15);
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --text-primary: #2D2D3A;
+  --text-secondary: #6B6B80;
+  --text-muted: #A0A0B0;
+  --border: #E8E6E3;
+  --border-hover: #D0CEC8;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
@@ -129,12 +129,12 @@ body {
 .upload-zone:focus-visible,
 .upload-zone.dragover {
   border-color: var(--accent);
-  background: rgba(16, 185, 129, 0.05);
+  background: rgba(124, 92, 252, 0.04);
 }
 
 .upload-zone.dragover {
   border-style: solid;
-  background: rgba(16, 185, 129, 0.1);
+  background: rgba(124, 92, 252, 0.08);
 }
 
 .upload-zone:focus-visible {
@@ -235,7 +235,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 15, 19, 0.8);
+  background: rgba(250, 250, 248, 0.85);
   gap: var(--space-md);
 }
 
@@ -391,7 +391,7 @@ body {
 }
 
 .btn-download-all:hover {
-  background: rgba(16, 185, 129, 0.15);
+  background: rgba(124, 92, 252, 0.1);
 }
 
 /* ---- Controls ---- */
@@ -489,7 +489,7 @@ body {
 .mode-btn.active {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(16, 185, 129, 0.1);
+  background: rgba(124, 92, 252, 0.08);
   box-shadow: 0 0 0 1px var(--accent-glow);
 }
 
@@ -557,7 +557,7 @@ body {
 
 .emoji-btn.active {
   border-color: var(--accent);
-  background: rgba(16, 185, 129, 0.15);
+  background: rgba(124, 92, 252, 0.1);
 }
 
 /* ---- Color Picker ---- */
@@ -689,7 +689,7 @@ body {
 .format-option:has(input:checked) {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(16, 185, 129, 0.1);
+  background: rgba(124, 92, 252, 0.08);
 }
 
 .format-option input {

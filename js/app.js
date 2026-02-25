@@ -479,7 +479,7 @@ function handleFaceRemoved() {
   const photo = getActivePhoto();
   if (!photo?.selectedFaceId) return;
   const idx = photo.faces.findIndex((f) => f.id === photo.selectedFaceId);
-  if (idx >= 0 && photo.faces[idx].manual) {
+  if (idx >= 0) {
     pushUndo(photo);
     photo.faces.splice(idx, 1);
     photo.selectedFaceId = null;

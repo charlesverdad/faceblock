@@ -306,17 +306,20 @@ function setupCanvasClick() {
     return rect.width > 0 ? rect.width / canvas.width : 1;
   }
 
-  function getHandleSize() {
-    // Ensure minimum 44px screen touch target
+  function getHandleSize(face) {
     const displayScale = getDisplayScale();
-    const minCanvasPx = 44 / displayScale;
-    return Math.max(minCanvasPx, 24);
+    const faceMin = Math.min(face.box.width, face.box.height);
+    // 22px screen minimum, but never more than 25% of the face
+    const fromScreen = 22 / displayScale;
+    return Math.min(Math.max(fromScreen, 14), faceMin * 0.25);
   }
 
-  function getDeleteBtnSize() {
+  function getDeleteBtnSize(face) {
     const displayScale = getDisplayScale();
-    const minCanvasPx = 32 / displayScale;
-    return Math.max(minCanvasPx, 20);
+    const faceMin = Math.min(face.box.width, face.box.height);
+    // 18px screen minimum, but never more than 20% of the face
+    const fromScreen = 18 / displayScale;
+    return Math.min(Math.max(fromScreen, 12), faceMin * 0.2);
   }
 
   function hitTest(cx, cy) {
@@ -326,7 +329,7 @@ function setupCanvasClick() {
         const b = selected.box;
 
         // Check delete button (top-right)
-        const ds = getDeleteBtnSize();
+        const ds = getDeleteBtnSize(selected);
         const dx = b.x + b.width - ds / 2;
         const dy = b.y - ds / 2;
         const dCx = dx + ds / 2;
@@ -337,7 +340,7 @@ function setupCanvasClick() {
         }
 
         // Check resize handle (bottom-right)
-        const hs = getHandleSize();
+        const hs = getHandleSize(selected);
         const hx = b.x + b.width - hs;
         const hy = b.y + b.height - hs;
         if (cx >= hx && cx <= hx + hs && cy >= hy && cy <= hy + hs) {
@@ -395,16 +398,16 @@ function setupCanvasClick() {
       const dx = drag.currentX - drag.startX;
       const dy = drag.currentY - drag.startY;
       const b = drag.origBox;
-      ctx.strokeStyle = "#10b981";
+      ctx.strokeStyle = "#7C5CFC";
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 3]);
       ctx.strokeRect(b.x + dx, b.y + dy, b.width, b.height);
-      ctx.fillStyle = "rgba(16,185,129,0.08)";
+      ctx.fillStyle = "rgba(124,92,252,0.08)";
       ctx.fillRect(b.x + dx, b.y + dy, b.width, b.height);
       ctx.setLineDash([]);
     } else if (drag.mode === "resize") {
       const box = getResizeBox();
-      ctx.strokeStyle = "#10b981";
+      ctx.strokeStyle = "#7C5CFC";
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 3]);
       ctx.strokeRect(box.x, box.y, box.width, box.height);
@@ -801,10 +804,10 @@ export function renderOverlay(faces, selectedFaceId) {
     const isManual = face.manual;
 
     ctx.strokeStyle = isSelected
-      ? "#10b981"
+      ? "#7C5CFC"
       : isManual
         ? "#f4a261"
-        : "rgba(16,185,129,0.7)";
+        : "rgba(124,92,252,0.6)";
     ctx.lineWidth = Math.max(2, Math.min(width, height) * 0.02);
     ctx.setLineDash(isManual ? [8, 4] : []);
 
@@ -816,7 +819,7 @@ export function renderOverlay(faces, selectedFaceId) {
 
     // Light fill on hover/selected
     if (isSelected) {
-      ctx.fillStyle = "rgba(16,185,129,0.1)";
+      ctx.fillStyle = "rgba(124,92,252,0.1)";
       ctx.fill();
     }
 
@@ -828,7 +831,7 @@ export function renderOverlay(faces, selectedFaceId) {
     const textWidth = ctx.measureText(label).width;
     const pad = 4;
 
-    ctx.fillStyle = isSelected ? "#10b981" : "rgba(16,185,129,0.8)";
+    ctx.fillStyle = isSelected ? "#7C5CFC" : "rgba(124,92,252,0.8)";
     ctx.fillRect(
       x,
       y - fontSize - pad * 2,
@@ -845,12 +848,13 @@ export function renderOverlay(faces, selectedFaceId) {
       const displayScale =
         overlay.getBoundingClientRect().width / overlay.width || 1;
 
-      // Resize handle (bottom-right corner) — minimum 44px screen touch target
-      const hs = Math.max(44 / displayScale, 24);
+      // Resize handle (bottom-right corner)
+      const faceMin = Math.min(width, height);
+      const hs = Math.min(Math.max(22 / displayScale, 14), faceMin * 0.25);
       const hx = x + width - hs;
       const hy = y + height - hs;
 
-      ctx.fillStyle = "#10b981";
+      ctx.fillStyle = "#7C5CFC";
       ctx.beginPath();
       ctx.roundRect(hx, hy, hs, hs, hs * 0.15);
       ctx.fill();
@@ -868,7 +872,7 @@ export function renderOverlay(faces, selectedFaceId) {
       ctx.stroke();
 
       // Delete button (top-right corner) — circle with X
-      const ds = Math.max(32 / displayScale, 20);
+      const ds = Math.min(Math.max(18 / displayScale, 12), faceMin * 0.2);
       const dcx = x + width - ds / 2;
       const dcy = y - ds / 2;
 
