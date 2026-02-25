@@ -387,10 +387,10 @@ function setupCanvasClick() {
   }
 
   function drawDragPreview() {
-    renderOverlay(currentFaces, currentSelectedId);
     const ctx = canvas.getContext("2d");
 
     if (drag.mode === "move") {
+      renderOverlay(currentFaces, currentSelectedId);
       const dx = drag.currentX - drag.startX;
       const dy = drag.currentY - drag.startY;
       const b = drag.origBox;
@@ -410,12 +410,12 @@ function setupCanvasClick() {
       ctx.setLineDash([]);
       ctx.globalAlpha = 1;
     } else if (drag.mode === "resize") {
+      // Render overlay with the resized box live
       const box = getResizeBox();
-      ctx.strokeStyle = "#7C5CFC";
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 3]);
-      ctx.strokeRect(box.x, box.y, box.width, box.height);
-      ctx.setLineDash([]);
+      const tempFaces = currentFaces.map((f) =>
+        f.id === drag.targetFaceId ? { ...f, box } : f,
+      );
+      renderOverlay(tempFaces, currentSelectedId);
     }
   }
 
@@ -424,12 +424,12 @@ function setupCanvasClick() {
   function setDragHint(text) {
     savedFaceCountText = els.faceCount.textContent;
     els.faceCount.textContent = text;
-    els.faceCount.style.color = "var(--text-muted)";
+    els.faceCount.classList.add("drag-hint");
   }
 
   function clearDragHint() {
     els.faceCount.textContent = savedFaceCountText;
-    els.faceCount.style.color = "";
+    els.faceCount.classList.remove("drag-hint");
   }
 
   function handlePointerDown(x, y) {
@@ -678,7 +678,7 @@ export function renderThumbnailStrip(photos, activePhotoId) {
 
   strip.classList.add("visible");
   els.downloadAllBtn.hidden = false;
-  els.downloadAllBtn.textContent = `Download All (${photos.length})`;
+  els.downloadAllBtn.textContent = `Save All (${photos.length})`;
 
   strip.innerHTML = "";
 
@@ -872,17 +872,34 @@ export function renderOverlay(faces, selectedFaceId) {
       ctx.roundRect(hx, hy, hs, hs, hs * 0.15);
       ctx.fill();
 
-      // Grip lines inside resize handle
+      // Diagonal two-headed arrow (↗↙) inside resize handle
       ctx.strokeStyle = "#fff";
-      ctx.lineWidth = Math.max(1.5, hs * 0.06);
+      ctx.lineWidth = Math.max(1.5, hs * 0.08);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      const ax1 = hx + hs * 0.25;
+      const ay1 = hy + hs * 0.75;
+      const ax2 = hx + hs * 0.75;
+      const ay2 = hy + hs * 0.25;
+      // Main diagonal line
       ctx.beginPath();
-      ctx.moveTo(hx + hs * 0.25, hy + hs * 0.85);
-      ctx.lineTo(hx + hs * 0.85, hy + hs * 0.25);
-      ctx.moveTo(hx + hs * 0.45, hy + hs * 0.85);
-      ctx.lineTo(hx + hs * 0.85, hy + hs * 0.45);
-      ctx.moveTo(hx + hs * 0.65, hy + hs * 0.85);
-      ctx.lineTo(hx + hs * 0.85, hy + hs * 0.65);
+      ctx.moveTo(ax1, ay1);
+      ctx.lineTo(ax2, ay2);
       ctx.stroke();
+      // Top-right arrowhead
+      const arrowLen = hs * 0.2;
+      ctx.beginPath();
+      ctx.moveTo(ax2 - arrowLen, ay2);
+      ctx.lineTo(ax2, ay2);
+      ctx.lineTo(ax2, ay2 + arrowLen);
+      ctx.stroke();
+      // Bottom-left arrowhead
+      ctx.beginPath();
+      ctx.moveTo(ax1 + arrowLen, ay1);
+      ctx.lineTo(ax1, ay1);
+      ctx.lineTo(ax1, ay1 - arrowLen);
+      ctx.stroke();
+      ctx.lineCap = "butt";
 
       // Delete button (top-right corner) — constant screen size
       const ds = 22 / displayScale;

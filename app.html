@@ -94,6 +94,21 @@
 
         <!-- Controls Sidebar -->
         <div class="controls">
+          <!-- Undo/Redo -->
+          <div class="undo-redo-bar">
+            <button id="undo-btn" class="btn-undo" disabled aria-label="Undo" title="Undo (Ctrl+Z)">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+              Undo
+            </button>
+            <button id="redo-btn" class="btn-redo" disabled aria-label="Redo" title="Redo (Ctrl+Shift+Z)">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
+          </div>
+
           <!-- Status Bar -->
           <div id="status-bar" class="status-bar" aria-live="polite">
             <span id="status-text"></span>
@@ -158,22 +173,6 @@
               </label>
               <input type="range" id="quality-slider" class="slider" min="10" max="100" value="92" aria-label="JPEG quality">
             </div>
-          </div>
-
-          <!-- Undo/Redo -->
-          <div class="undo-redo-bar">
-            <button id="undo-btn" class="btn-icon" disabled aria-label="Undo" title="Undo (Ctrl+Z)">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="1 4 1 10 7 10"/>
-                <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
-              </svg>
-            </button>
-            <button id="redo-btn" class="btn-icon" disabled aria-label="Redo" title="Redo (Ctrl+Shift+Z)">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="23 4 23 10 17 10"/>
-                <path d="M20.49 15a9 9 0 11-2.13-9.36L23 10"/>
-              </svg>
-            </button>
           </div>
 
           <!-- Action Buttons -->

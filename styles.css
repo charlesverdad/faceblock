@@ -321,6 +321,16 @@ body {
   font-size: 0.85rem;
   color: var(--text-secondary);
   padding: var(--space-sm) 0;
+  text-align: center;
+  transition: all 150ms ease;
+}
+
+.face-count.drag-hint {
+  color: var(--accent);
+  font-weight: 600;
+  background: rgba(124, 92, 252, 0.08);
+  border-radius: 8px;
+  padding: var(--space-sm) var(--space-md);
 }
 
 /* ---- Thumbnail Strip ---- */
@@ -779,7 +789,46 @@ body {
 /* ---- Undo/Redo Bar ---- */
 .undo-redo-bar {
   display: flex;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
+}
+
+.btn-undo,
+.btn-redo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: var(--font);
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-undo svg,
+.btn-redo svg {
+  flex-shrink: 0;
+}
+
+.btn-undo:hover:not(:disabled),
+.btn-redo:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+  background: var(--bg-hover);
+}
+
+.btn-undo:disabled,
+.btn-redo:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btn-redo {
+  padding: 6px 8px;
 }
 
 .btn-icon {
